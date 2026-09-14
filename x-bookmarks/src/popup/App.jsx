@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { loadRows, onRowsChanged } from '../lib/store.js'
 import { exportRows } from '../lib/export.js'
 import { scrapeNow, scrapeStatus, stopScrape } from '../lib/browser.js'
-import { BookmarkIcon, PlayIcon, StopIcon, ExternalIcon } from '../components/Icons.jsx'
+import { BookmarkIcon, StopIcon, XIcon } from '../components/Icons.jsx'
 
 export function App() {
   const [rows, setRows] = useState([])
@@ -40,7 +40,7 @@ export function App() {
           ? status.status
           : onPage
             ? 'Ready to scrape this page.'
-            : 'Open your bookmarks page to scrape.'}
+            : 'Opens your bookmarks on X, then collects them.'}
       </p>
 
       <button type="button" className="btn popup-primary" onClick={openLibrary}>
@@ -55,8 +55,8 @@ export function App() {
         </button>
       ) : (
         <button type="button" className="btn-quiet popup-wide" onClick={scrapeNow}>
-          {onPage ? <PlayIcon size={15} /> : <ExternalIcon size={15} />}
-          {onPage ? 'Start scraping' : 'Open bookmarks page'}
+          <XIcon size={14} />
+          Scrape bookmarks
         </button>
       )}
 
