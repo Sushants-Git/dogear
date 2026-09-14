@@ -18,10 +18,14 @@ that pulls your bookmarks into a reader of their own, on your machine.
 
 ## Use it
 
-1. Go to your bookmarks on X — `x.com/i/history`.
-2. Click **Scrape bookmarks**, bottom right of the page. Leave the tab in front while it
-   scrolls.
-3. Click the extension icon, then **Open library**.
+1. Click the Dogear icon in Chrome's toolbar. If it isn't there, click the puzzle piece
+   and pin it.
+2. Click **Scrape bookmarks**. It opens your bookmarks on X and starts working through
+   them. Leave that tab in front while it scrolls.
+3. When it's done, click the icon again and choose **Open library**.
+
+If you're already on your bookmarks page, the same controls are in the bar across the
+top of it.
 
 Run it again whenever you like. Rows are keyed by post id, so a second pass updates and
 adds rather than duplicating.
