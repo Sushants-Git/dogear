@@ -11,8 +11,10 @@ that pulls your bookmarks into a reader of their own, on your machine.
 ## Install
 
 1. Download `x-bookmarks.zip` from [Releases](../../releases/latest) and unzip it.
-2. Open `chrome://extensions` and turn on **Developer mode**, top right.
-3. Click **Load unpacked** and choose the unzipped folder.
+2. In Chrome, type `chrome://extensions` in the address bar — the same box you type a
+   website into — and press Enter.
+3. Turn on **Developer mode** with the toggle at the top right.
+4. Click **Load unpacked** (top left) and choose the folder you unzipped.
 
 ## Use it
 
