@@ -1,0 +1,487 @@
+/* ── base ────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--sunken);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; border: none; background: none; padding: 0; cursor: pointer; }
+input { font: inherit; color: inherit; }
+code { font-family: var(--font-mono); font-size: 0.86em; }
+
+::selection { background: var(--selection); }
+
+::-webkit-scrollbar { width: 11px; }
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 3.5px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--r-pill);
+}
+:hover::-webkit-scrollbar-thumb { background: var(--border-strong); background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--steel); background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* The traffic lights sit here, so the top of the window has to be draggable. */
+.drag-strip { height: 34px; flex: none; -webkit-app-region: drag; }
+
+.boot { height: 100%; background: var(--sunken); }
+
+/* ── shell ───────────────────────────────────────────────────────── */
+/* One column, top to bottom: a search header, then the feed under it. */
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.shell.is-dragging { outline: 2px solid var(--text); outline-offset: -2px; }
+
+/* ── header ──────────────────────────────────────────────────────── */
+.top {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border);
+  background: var(--page);
+}
+
+.top-inner {
+  width: 100%;
+  max-width: var(--grid);
+  margin: 0 auto;
+  padding: 0 var(--gutter) 12px;
+}
+
+/* No box and no fill. On a white page the field is a line of type with a rule under
+   it — the same trick the feed uses to separate posts. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  -webkit-app-region: no-drag;
+}
+.search-icon { flex: none; color: var(--steel); }
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  user-select: text;
+}
+.search-input::placeholder { color: var(--text-3); font-weight: 400; }
+.search-clear {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  color: var(--steel);
+}
+.search-clear:hover { background: var(--mist); color: var(--text); }
+
+.top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.segmented { display: flex; gap: 2px; }
+.segment {
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  border-radius: var(--r-md);
+  transition: background 120ms ease, color 120ms ease;
+}
+.segment:hover { color: var(--text-2); background: var(--sunken); }
+.segment.is-on { color: var(--text); background: var(--mist); }
+
+.count {
+  margin-left: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.top-import {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  color: var(--steel);
+  transition: background 120ms ease, color 120ms ease;
+}
+.top-import:hover { background: var(--mist); color: var(--text); }
+
+.chips {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 92%, transparent);
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--sunken);
+  border-radius: var(--r-pill);
+  transition: background 120ms ease, color 120ms ease;
+}
+.chip:hover { background: var(--mist); color: var(--text); }
+.chip-count { font-variant-numeric: tabular-nums; color: var(--text-3); }
+
+/* ── feed ────────────────────────────────────────────────────────── */
+.feed { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* Cards, laid out in as many columns as the window has room for. Row-major order, so
+   reading left-to-right and top-to-bottom is still the ranked order. */
+.feed-inner {
+  max-width: var(--grid);
+  margin: 0 auto;
+  padding: 16px var(--gutter) 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.feed-empty {
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: 60px var(--gutter);
+  text-align: center;
+  color: var(--text-2);
+}
+.feed-empty p { margin: 0 0 10px; font-size: 14px; }
+.feed-empty .hint { font-size: 12.5px; color: var(--text-3); line-height: 1.9; }
+.feed-empty code { background: var(--mist); padding: 2px 5px; border-radius: var(--r-sm); }
+
+/* ── card ────────────────────────────────────────────────────────── */
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 15px 16px 10px;
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+  user-select: text;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.card:hover { border-color: var(--border-strong); }
+/* The selected card is outlined rather than filled, so nothing inside it changes
+   colour as you arrow through the grid. */
+.card.is-active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.card-who {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  text-align: left;
+}
+/* Name and handle keep their own baseline; the avatar is centred against the pair. */
+.card-who-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.card-avatar {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--mist);
+}
+.card-avatar-blank {
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.card-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-handle {
+  font-size: 12.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+  transition: color 120ms ease;
+}
+.card-who:hover .card-handle { color: var(--text-2); }
+
+.card-date {
+  margin-left: auto;
+  flex: none;
+  font-size: 12px;
+  color: var(--text-3);
+  transition: color 120ms ease;
+}
+.card-date:hover { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
+
+.post-body {
+  font-size: 14.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 10;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.post-body.is-open { -webkit-line-clamp: unset; }
+
+.post-more {
+  align-self: flex-start;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.post-more:hover { color: var(--text); }
+
+mark {
+  background: var(--mark);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── media ───────────────────────────────────────────────────────── */
+.media {
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--mist);
+}
+.media-1 { grid-template-columns: 1fr; }
+.media-2, .media-3, .media-4 { grid-template-columns: 1fr 1fr; }
+.media-3 > :first-child { grid-row: span 2; }
+.media img, .media video {
+  width: 100%;
+  height: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+  background: var(--mist);
+}
+.media-1 img, .media-1 video { max-height: 280px; }
+
+/* ── link preview ────────────────────────────────────────────────── */
+.link-card {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  margin-top: 12px;
+  padding: 9px 11px;
+  background: var(--sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.link-card:hover { border-color: var(--border-strong); background: var(--mist); }
+.link-card.has-image { padding: 9px; }
+
+.link-thumb {
+  flex: none;
+  width: 62px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  background: var(--mist);
+}
+
+.link-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.link-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.link-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+.link-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-quote {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.card-quote:hover { color: var(--text); }
+
+/* ── card footer ─────────────────────────────────────────────────── */
+.card-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+.metrics { display: flex; gap: 12px; min-width: 0; overflow: hidden; }
+.metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+}
+
+.card-tools { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+
+/* Destructive and duplicate actions stay quiet until you are on the card; the way
+   back to the post does not. */
+.tool {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  color: var(--text-3);
+  opacity: 0;
+  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+}
+.card:hover .tool, .card.is-active .tool, .tool:focus-visible { opacity: 1; }
+.tool:hover { background: var(--mist); color: var(--text); }
+.tool-danger:hover { color: var(--text); }
+
+.card-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  background: var(--sunken);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+.card-open:hover { background: var(--text); color: var(--page); }
+
+/* ── welcome ─────────────────────────────────────────────────────── */
+.welcome { height: 100%; display: flex; flex-direction: column; }
+.welcome.is-dragging { outline: 2px solid var(--text); outline-offset: -2px; }
+.welcome-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 0 40px 60px;
+  text-align: center;
+  color: var(--text-3);
+}
+.welcome-body h1 { margin: 0; font-size: 19px; font-weight: 700; color: var(--text); }
+.welcome-body p { margin: 0; max-width: 360px; font-size: 13.5px; line-height: 1.6; color: var(--text-2); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  margin-top: 6px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--page);
+  background: var(--text);
+  border-radius: var(--r-md);
+  transition: opacity 120ms ease;
+}
+.btn:hover { opacity: 0.85; }
+
+/* ── notice ──────────────────────────────────────────────────────── */
+.notice {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 15px;
+  font-size: 12.5px;
+  color: var(--page);
+  background: var(--text);
+  border-radius: var(--r-pill);
+  animation: rise 160ms ease-out;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice { animation: none; }
+}

@@ -1,0 +1,37 @@
+/*
+ * Every colour, size and radius in the app is named here and nowhere else.
+ *
+ * The palette is Noti's light theme: one ground, three inks, two hairlines. There is
+ * no accent colour and no second theme — the interactive thing on a page is simply the
+ * one carrying the most ink.
+ */
+:root {
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --page: #ffffff;
+  --sunken: #f6f6f6;
+  --mist: #f0f0f0;
+
+  --border: #e8e8e8;
+  --border-strong: #d6d6d6;
+  --steel: #b4b4b4;
+
+  --text: #171717;
+  --text-2: #6b6b6b;
+  --text-3: #9e9e9e;
+
+  --selection: #e3e3e3;
+  --mark: #f2e9c8;
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 10px;
+  --r-card: 14px;
+  --r-pill: 9999px;
+
+  /* The header keeps a reading measure; the card grid is as wide as the window. */
+  --column: 660px;
+  --grid: 1180px;
+  --gutter: 28px;
+}

@@ -1,0 +1,18 @@
+/*
+ * Inter — SIL Open Font License 1.1, free to bundle and redistribute. Four weights, the
+ * only ones the interface actually asks for; see LICENSE-Inter.txt beside the files.
+ *
+ * This was designed in GT Walsheim Pro, a licensed Grilli Type face that cannot be
+ * redistributed and so is not in this repository. If you own a licence, drop the woff2
+ * files into src/assets/fonts/, add the @font-face rules here, and name it ahead of
+ * Inter in `--font-ui`.
+ */
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/inter-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/inter-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/inter-latin-600-normal.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Inter'; src: url('../assets/fonts/inter-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+
+/* JetBrains Mono — SIL Open Font License 1.1, free to bundle. Code only. */
+@font-face { font-family: 'JetBrains Mono'; src: url('../assets/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../assets/fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: block; }
+@font-face { font-family: 'JetBrains Mono'; src: url('../assets/fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: block; }

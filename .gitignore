@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-electron/
+release/
+
+.DS_Store
+*.log
+.env
+.env.local
+
+# The first version of the extension, superseded by x-bookmarks/. Kept on disk, left
+# out of the repo so nobody installs the wrong one of two near-identical extensions.
+x-bookmarks-exporter/
+
+# GT Walsheim Pro is a licensed Grilli Type face — bundled locally, never redistributed.
+# The UI falls back to the system sans without it. See src/styles/fonts.css.
+**/assets/fonts/GTWalsheim*.woff2
