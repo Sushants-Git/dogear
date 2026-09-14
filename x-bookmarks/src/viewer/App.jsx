@@ -226,6 +226,14 @@ export function App() {
         previews={previews}
         onSelect={setActiveId}
         onRemove={async (id) => {
+          // Hand the selection to the neighbour before the row goes. Otherwise the rule
+          // above — selection follows the results — finds the active row missing and
+          // re-points it at results[0], and the feed scrolls to the top. Fine when a
+          // search changed what is on screen; maddening when you deleted one card out
+          // of a thousand and lost your place.
+          const at = results.findIndex((r) => r.id === id)
+          if (at !== -1) setActiveId(results[at + 1]?.id ?? results[at - 1]?.id ?? null)
+
           await removeRow(id)
           setRows(await loadRows())
         }}

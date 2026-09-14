@@ -27,9 +27,10 @@ button { font: inherit; color: inherit; border: none; background: none; padding:
   border-radius: var(--r-card);
 }
 .popup-number {
-  font-size: 28px;
+  font-family: var(--font-mono);
+  font-size: 25px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }

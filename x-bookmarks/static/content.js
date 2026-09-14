@@ -294,61 +294,15 @@ async function runScrape() {
 const HOST_ID = 'xbe-scrape-host';
 
 /*
- * The dog, drawn where you can see it. Two frames, sixteen by eight, legs in opposite
- * phases — alternate them and it trots. `#` is ink, `.` is nothing.
+ * The dog: an eight frame gallop, 58x32 a frame, laid out as one horizontal strip and
+ * inlined as a data URI. It is here rather than in a file because a content script
+ * reaching its own packaged images means declaring web_accessible_resources, which
+ * hands every page on x.com a url it can fetch — a lot of surface for 2KB of dog.
  */
-const DOG_FRAMES = [
-  [
-    '.............##.',
-    '.##.......#####.',
-    '..###....######.',
-    '.##############.',
-    '.##############.',
-    '..##.##..##.##..',
-    '..#...#..#...#..',
-    '................',
-  ],
-  [
-    '.............##.',
-    '..##......#####.',
-    '...###...######.',
-    '.##############.',
-    '.##############.',
-    '.##..##..##..##.',
-    '.#....#..#....#.',
-    '................',
-  ],
-];
-
-const PIXEL = 2;
-
-/** Runs of `#` become one <rect> each, so a frame is a dozen nodes rather than sixty. */
-function drawFrame(rows, className) {
-  const ns = 'http://www.w3.org/2000/svg';
-  const group = document.createElementNS(ns, 'g');
-  group.setAttribute('class', className);
-
-  rows.forEach((row, y) => {
-    let x = 0;
-    while (x < row.length) {
-      if (row[x] !== '#') {
-        x++;
-        continue;
-      }
-      let run = 0;
-      while (row[x + run] === '#') run++;
-      const rect = document.createElementNS(ns, 'rect');
-      rect.setAttribute('x', x * PIXEL);
-      rect.setAttribute('y', y * PIXEL);
-      rect.setAttribute('width', run * PIXEL);
-      rect.setAttribute('height', PIXEL);
-      group.append(rect);
-      x += run;
-    }
-  })
-
-  return group;
-}
+const DOG_STRIP = 'data:image/png;base64,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';
+const DOG_W = 58;
+const DOG_H = 32;
+const DOG_FRAMES = 8;
 
 const CSS = `
   :host { all: initial; }
@@ -362,7 +316,7 @@ const CSS = `
     display: flex;
     align-items: center;
     gap: 10px;
-    height: 46px;
+    height: 48px;
     padding: 0 16px;
     color: var(--ink);
     background: var(--ground);
@@ -373,7 +327,13 @@ const CSS = `
   }
 
   .count, .hint { color: var(--quiet); font-weight: 400; }
-  .count { font-variant-numeric: tabular-nums; }
+  /* Mono for the figure, as everywhere else — the bundled face is not available to a
+     page on x.com, so this takes whatever the system has. */
+  .count {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
   .hint { margin-left: auto; }
 
   button {
@@ -405,39 +365,48 @@ const CSS = `
   .track {
     position: relative;
     flex: 1;
-    min-width: 60px;
-    height: 20px;
+    min-width: 80px;
+    height: ${DOG_H}px;
     overflow: hidden;
   }
   .dog {
     position: absolute;
     bottom: 0;
     left: 0;
-    color: var(--ink);
-    animation: lap 7s linear infinite;
+    width: ${DOG_W}px;
+    height: ${DOG_H}px;
+    background-image: url(${DOG_STRIP});
+    background-repeat: no-repeat;
+    /* Drawn at 1:1. Pixel art at any other scale is a smear or a lie. */
+    background-size: ${DOG_W * DOG_FRAMES}px ${DOG_H}px;
+    image-rendering: pixelated;
+    animation: gallop 0.66s steps(${DOG_FRAMES}) infinite, lap 7s linear infinite;
   }
-  .dog rect { fill: currentColor; }
-  .frame-a { animation: flip-a 0.22s steps(1, end) infinite; }
-  .frame-b { animation: flip-b 0.22s steps(1, end) infinite; }
 
   @media (max-width: 720px) { .hint { display: none } .count { margin-left: auto } }
   @media (max-width: 520px) { .track { display: none } }
 
   @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
   @keyframes drop { from { transform: translateY(-100%) } to { transform: none } }
-  @keyframes flip-a { 0%, 49.9% { opacity: 1 } 50%, 100% { opacity: 0 } }
-  @keyframes flip-b { 0%, 49.9% { opacity: 0 } 50%, 100% { opacity: 1 } }
+  @keyframes gallop { to { background-position: -${DOG_W * DOG_FRAMES}px 0 } }
 
-  /* Out at the right edge, back in at the left — it never appears to bounce. */
+  /*
+   * Right to left, because that is the way the dog faces — sent the other way it
+   * moonwalks.
+   *
+   * This animates 'left' rather than a transform on purpose: a percentage in
+   * translateX resolves against the element's own width, so the dog would cover 58px
+   * of a bar however wide the bar happened to be. A percentage in 'left' resolves
+   * against the track, which is the thing it is meant to be running the length of.
+   */
   @keyframes lap {
-    from { transform: translateX(-40px) }
-    to { transform: translateX(calc(100% + 40px)) }
+    from { left: 100% }
+    to { left: -${DOG_W}px }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .dot, .dog, .frame-a, .frame-b { animation: none }
-    .bar { animation: none }
-    .frame-b { opacity: 0 }
+    .dot, .dog, .bar { animation: none }
+    .dog { background-position: 0 0 }
   }
 `;
 
@@ -482,14 +451,7 @@ function mount() {
   action.addEventListener('click', () => (state.running ? halt() : runScrape()));
 
   const track = el('span', 'track');
-  const dog = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  dog.setAttribute('class', 'dog');
-  dog.setAttribute('width', 16 * PIXEL);
-  dog.setAttribute('height', 8 * PIXEL);
-  dog.setAttribute('viewBox', `0 0 ${16 * PIXEL} ${8 * PIXEL}`);
-  dog.setAttribute('shape-rendering', 'crispEdges');
-  dog.append(drawFrame(DOG_FRAMES[0], 'frame-a'), drawFrame(DOG_FRAMES[1], 'frame-b'));
-  track.append(dog);
+  track.append(el('span', 'dog'));
 
   bar.append(el('span', 'dot'), label, count, track, hint, action);
   root.append(bar);
@@ -510,7 +472,7 @@ function render() {
   if (state.running) {
     ui.label.textContent = 'Scraping your X bookmarks';
     ui.count.textContent = total ? `· ${total.toLocaleString()} collected` : '';
-    ui.hint.textContent = 'Keep this tab in front — it scrolls on its own';
+    ui.hint.textContent = 'Keep this tab in front. It scrolls on its own';
     ui.action.textContent = 'Stop';
     return;
   }

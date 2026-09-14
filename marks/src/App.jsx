@@ -191,7 +191,13 @@ export function App() {
         terms={terms}
         activeId={activeId}
         onSelect={setActiveId}
-        onRemove={(id) => remove.mutate(id)}
+        onRemove={(id) => {
+          // Hand the selection to the neighbour first: the rule above re-points a
+          // missing selection at results[0], which scrolls the feed to the top.
+          const at = results.findIndex((r) => r.id === id)
+          if (at !== -1) setActiveId(results[at + 1]?.id ?? results[at - 1]?.id ?? null)
+          remove.mutate(id)
+        }}
         scrollRef={feedRef}
       />
       {notice && <div className="notice">{notice}</div>}
