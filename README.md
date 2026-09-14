@@ -48,3 +48,6 @@ npm test
 
 MIT. Set in [Inter](https://rsms.me/inter/) and
 [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both SIL Open Font License.
+
+The dog that runs along the bar during a scrape is a sprite from a third-party pixel art
+pack, and is not covered by the MIT licence above.
