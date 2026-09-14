@@ -280,15 +280,12 @@ async function runScrape() {
 /* --------------------------------------------------------------- in-page UI */
 
 /*
- * Two pieces on the bookmarks page itself, because that is where you already are when
- * you decide to scrape:
+ * One bar across the top of the bookmarks page, in both states: idle, with the button
+ * that starts a scrape, and running, saying plainly what is happening to your browser.
  *
- *   idle     a pill, out of the way in the corner
- *   running  a bar across the top, saying plainly what is happening to your browser
- *
- * The bar is not decoration. A scrape takes over the tab and scrolls it for minutes;
- * a small button in the corner that says "stop" does not explain why the page is
- * moving on its own. Something full width, at the top, does.
+ * Full width and at the top because a scrape takes over the tab and scrolls it for
+ * minutes. A small control in a corner does not explain why the page is moving on its
+ * own; something across the top does, and has room for the count and the way out.
  *
  * All of it lives in a shadow root: x.com's stylesheet is not going to leave a bare
  * <button> alone, and nothing here should leak out either.
@@ -296,34 +293,65 @@ async function runScrape() {
 
 const HOST_ID = 'xbe-scrape-host';
 
+/*
+ * The dog, drawn where you can see it. Two frames, sixteen by eight, legs in opposite
+ * phases — alternate them and it trots. `#` is ink, `.` is nothing.
+ */
+const DOG_FRAMES = [
+  [
+    '.............##.',
+    '.##.......#####.',
+    '..###....######.',
+    '.##############.',
+    '.##############.',
+    '..##.##..##.##..',
+    '..#...#..#...#..',
+    '................',
+  ],
+  [
+    '.............##.',
+    '..##......#####.',
+    '...###...######.',
+    '.##############.',
+    '.##############.',
+    '.##..##..##..##.',
+    '.#....#..#....#.',
+    '................',
+  ],
+];
+
+const PIXEL = 2;
+
+/** Runs of `#` become one <rect> each, so a frame is a dozen nodes rather than sixty. */
+function drawFrame(rows, className) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const group = document.createElementNS(ns, 'g');
+  group.setAttribute('class', className);
+
+  rows.forEach((row, y) => {
+    let x = 0;
+    while (x < row.length) {
+      if (row[x] !== '#') {
+        x++;
+        continue;
+      }
+      let run = 0;
+      while (row[x + run] === '#') run++;
+      const rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', x * PIXEL);
+      rect.setAttribute('y', y * PIXEL);
+      rect.setAttribute('width', run * PIXEL);
+      rect.setAttribute('height', PIXEL);
+      group.append(rect);
+      x += run;
+    }
+  })
+
+  return group;
+}
+
 const CSS = `
   :host { all: initial; }
-
-  .pill {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    z-index: 2147483000;
-    font: 500 14px/1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-  }
-
-  .pill button {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    margin: 0;
-    padding: 11px 17px;
-    font: inherit;
-    color: var(--ink);
-    background: var(--ground);
-    border: 1px solid var(--edge);
-    border-radius: 9999px;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 28px rgba(0, 0, 0, 0.14);
-    transition: transform 120ms ease, box-shadow 120ms ease;
-  }
-  .pill button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07), 0 12px 34px rgba(0, 0, 0, 0.18); }
-  .pill button:active { transform: none; }
 
   .bar {
     position: fixed;
@@ -344,17 +372,11 @@ const CSS = `
     animation: drop 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  .bar .count {
-    color: var(--quiet);
-    font-weight: 400;
-    font-variant-numeric: tabular-nums;
-  }
-  .bar .hint {
-    margin-left: auto;
-    color: var(--quiet);
-    font-weight: 400;
-  }
-  .bar button {
+  .count, .hint { color: var(--quiet); font-weight: 400; }
+  .count { font-variant-numeric: tabular-nums; }
+  .hint { margin-left: auto; }
+
+  button {
     flex: none;
     margin: 0;
     padding: 7px 14px;
@@ -365,16 +387,9 @@ const CSS = `
     border: 1px solid var(--edge);
     border-radius: 9999px;
     cursor: pointer;
-    transition: border-color 120ms ease;
+    transition: border-color 120ms ease, background 120ms ease;
   }
-  .bar button:hover { border-color: var(--ink); }
-
-  /* The hint is the first thing to go; the count and the stop button are not. */
-  @media (max-width: 640px) {
-    .bar .hint { display: none; }
-    .bar .count { margin-left: auto; }
-  }
-
+  button:hover { border-color: var(--ink); }
   button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
 
   .dot {
@@ -384,16 +399,45 @@ const CSS = `
     border-radius: 50%;
     background: var(--quiet);
   }
-  .bar .dot { background: #1d9bf0; animation: pulse 1.4s ease-in-out infinite; }
+  .is-running .dot { background: #1d9bf0; animation: pulse 1.4s ease-in-out infinite; }
 
-  .pill .count { color: var(--quiet); font-variant-numeric: tabular-nums; }
-  .pill .count:empty { display: none; }
+  /* The dog gets its own stretch of bar, so it never runs through the text. */
+  .track {
+    position: relative;
+    flex: 1;
+    min-width: 60px;
+    height: 20px;
+    overflow: hidden;
+  }
+  .dog {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    color: var(--ink);
+    animation: lap 7s linear infinite;
+  }
+  .dog rect { fill: currentColor; }
+  .frame-a { animation: flip-a 0.22s steps(1, end) infinite; }
+  .frame-b { animation: flip-b 0.22s steps(1, end) infinite; }
+
+  @media (max-width: 720px) { .hint { display: none } .count { margin-left: auto } }
+  @media (max-width: 520px) { .track { display: none } }
 
   @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
   @keyframes drop { from { transform: translateY(-100%) } to { transform: none } }
+  @keyframes flip-a { 0%, 49.9% { opacity: 1 } 50%, 100% { opacity: 0 } }
+  @keyframes flip-b { 0%, 49.9% { opacity: 0 } 50%, 100% { opacity: 1 } }
+
+  /* Out at the right edge, back in at the left — it never appears to bounce. */
+  @keyframes lap {
+    from { transform: translateX(-40px) }
+    to { transform: translateX(calc(100% + 40px)) }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .dot { animation: none }
+    .dot, .dog, .frame-a, .frame-b { animation: none }
     .bar { animation: none }
+    .frame-b { opacity: 0 }
   }
 `;
 
@@ -429,33 +473,29 @@ function mount() {
   sheet.replaceSync(CSS);
   root.adoptedStyleSheets = [sheet];
 
-  // idle — the pill
-  const pill = el('div', 'pill');
-  const pillButton = el('button');
-  pillButton.type = 'button';
-  const pillCount = el('span', 'count');
-  pillButton.append(el('span', 'dot'), el('span', null, 'Scrape bookmarks'), pillCount);
-  pillButton.addEventListener('click', () => runScrape());
-  pill.append(pillButton);
-
-  // running — the bar
   const bar = el('div', 'bar');
-  const barCount = el('span', 'count');
-  const stop = el('button', null, 'Stop');
-  stop.type = 'button';
-  stop.addEventListener('click', () => halt());
-  bar.append(
-    el('span', 'dot'),
-    el('span', null, 'Scraping your X bookmarks'),
-    barCount,
-    el('span', 'hint', 'Keep this tab in front — it scrolls on its own'),
-    stop
-  );
+  const label = el('span', 'label');
+  const count = el('span', 'count');
+  const hint = el('span', 'hint');
+  const action = el('button');
+  action.type = 'button';
+  action.addEventListener('click', () => (state.running ? halt() : runScrape()));
 
-  root.append(pill, bar);
+  const track = el('span', 'track');
+  const dog = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  dog.setAttribute('class', 'dog');
+  dog.setAttribute('width', 16 * PIXEL);
+  dog.setAttribute('height', 8 * PIXEL);
+  dog.setAttribute('viewBox', `0 0 ${16 * PIXEL} ${8 * PIXEL}`);
+  dog.setAttribute('shape-rendering', 'crispEdges');
+  dog.append(drawFrame(DOG_FRAMES[0], 'frame-a'), drawFrame(DOG_FRAMES[1], 'frame-b'));
+  track.append(dog);
+
+  bar.append(el('span', 'dot'), label, count, track, hint, action);
+  root.append(bar);
   document.body.append(host);
 
-  ui = { host, pill, pillCount, bar, barCount };
+  ui = { host, bar, label, count, hint, action, track };
 }
 
 function render() {
@@ -463,12 +503,22 @@ function render() {
     ui.host.style.setProperty(`--${name}`, value);
   }
 
-  ui.pill.hidden = state.running;
-  ui.bar.hidden = !state.running;
-
   const total = state.tweets.size;
-  ui.pillCount.textContent = total ? total.toLocaleString() : '';
-  ui.barCount.textContent = total ? `· ${total.toLocaleString()} collected` : '';
+  ui.bar.classList.toggle('is-running', state.running);
+  ui.track.hidden = !state.running;
+
+  if (state.running) {
+    ui.label.textContent = 'Scraping your X bookmarks';
+    ui.count.textContent = total ? `· ${total.toLocaleString()} collected` : '';
+    ui.hint.textContent = 'Keep this tab in front — it scrolls on its own';
+    ui.action.textContent = 'Stop';
+    return;
+  }
+
+  ui.label.textContent = 'Dogear';
+  ui.count.textContent = total ? `· ${total.toLocaleString()} saved` : '';
+  ui.hint.textContent = '';
+  ui.action.textContent = 'Scrape bookmarks';
 }
 
 /*
