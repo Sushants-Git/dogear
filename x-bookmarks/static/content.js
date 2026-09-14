@@ -280,9 +280,18 @@ async function runScrape() {
 /* --------------------------------------------------------------- in-page UI */
 
 /*
- * A button on the bookmarks page itself, because that is where you already are when you
- * decide to scrape. Everything about it lives in a shadow root: x.com's stylesheet is
- * not going to leave a bare <button> alone, and nothing here should leak out either.
+ * Two pieces on the bookmarks page itself, because that is where you already are when
+ * you decide to scrape:
+ *
+ *   idle     a pill, out of the way in the corner
+ *   running  a bar across the top, saying plainly what is happening to your browser
+ *
+ * The bar is not decoration. A scrape takes over the tab and scrolls it for minutes;
+ * a small button in the corner that says "stop" does not explain why the page is
+ * moving on its own. Something full width, at the top, does.
+ *
+ * All of it lives in a shadow root: x.com's stylesheet is not going to leave a bare
+ * <button> alone, and nothing here should leak out either.
  */
 
 const HOST_ID = 'xbe-scrape-host';
@@ -290,7 +299,7 @@ const HOST_ID = 'xbe-scrape-host';
 const CSS = `
   :host { all: initial; }
 
-  .panel {
+  .pill {
     position: fixed;
     right: 20px;
     bottom: 20px;
@@ -298,7 +307,7 @@ const CSS = `
     font: 500 14px/1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   }
 
-  button {
+  .pill button {
     display: flex;
     align-items: center;
     gap: 9px;
@@ -311,10 +320,61 @@ const CSS = `
     border-radius: 9999px;
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 28px rgba(0, 0, 0, 0.14);
-    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    transition: transform 120ms ease, box-shadow 120ms ease;
   }
-  button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07), 0 12px 34px rgba(0, 0, 0, 0.18); }
-  button:active { transform: none; }
+  .pill button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07), 0 12px 34px rgba(0, 0, 0, 0.18); }
+  .pill button:active { transform: none; }
+
+  .bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2147483000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 46px;
+    padding: 0 16px;
+    color: var(--ink);
+    background: var(--ground);
+    border-bottom: 1px solid var(--edge);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.14);
+    font: 500 13.5px/1 -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    animation: drop 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .bar .count {
+    color: var(--quiet);
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar .hint {
+    margin-left: auto;
+    color: var(--quiet);
+    font-weight: 400;
+  }
+  .bar button {
+    flex: none;
+    margin: 0;
+    padding: 7px 14px;
+    font: inherit;
+    font-size: 12.5px;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--edge);
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: border-color 120ms ease;
+  }
+  .bar button:hover { border-color: var(--ink); }
+
+  /* The hint is the first thing to go; the count and the stop button are not. */
+  @media (max-width: 640px) {
+    .bar .hint { display: none; }
+    .bar .count { margin-left: auto; }
+  }
+
   button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
 
   .dot {
@@ -324,16 +384,17 @@ const CSS = `
     border-radius: 50%;
     background: var(--quiet);
   }
-  .is-running .dot { background: #1d9bf0; animation: pulse 1.4s ease-in-out infinite; }
+  .bar .dot { background: #1d9bf0; animation: pulse 1.4s ease-in-out infinite; }
 
-  .count {
-    color: var(--quiet);
-    font-variant-numeric: tabular-nums;
-  }
-  .count:empty { display: none; }
+  .pill .count { color: var(--quiet); font-variant-numeric: tabular-nums; }
+  .pill .count:empty { display: none; }
 
   @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }
-  @media (prefers-reduced-motion: reduce) { .dot { animation: none } }
+  @keyframes drop { from { transform: translateY(-100%) } to { transform: none } }
+  @media (prefers-reduced-motion: reduce) {
+    .dot { animation: none }
+    .bar { animation: none }
+  }
 `;
 
 const THEMES = {
@@ -350,6 +411,13 @@ function pageTheme() {
 
 let ui = null;
 
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+};
+
 function mount() {
   const host = document.createElement('div');
   host.id = HOST_ID;
@@ -361,36 +429,46 @@ function mount() {
   sheet.replaceSync(CSS);
   root.adoptedStyleSheets = [sheet];
 
-  const panel = document.createElement('div');
-  panel.className = 'panel';
+  // idle — the pill
+  const pill = el('div', 'pill');
+  const pillButton = el('button');
+  pillButton.type = 'button';
+  const pillCount = el('span', 'count');
+  pillButton.append(el('span', 'dot'), el('span', null, 'Scrape bookmarks'), pillCount);
+  pillButton.addEventListener('click', () => runScrape());
+  pill.append(pillButton);
 
-  const button = document.createElement('button');
-  button.type = 'button';
-  const dot = document.createElement('span');
-  dot.className = 'dot';
-  const label = document.createElement('span');
-  label.className = 'label';
-  const count = document.createElement('span');
-  count.className = 'count';
-  button.append(dot, label, count);
-  button.addEventListener('click', () => (state.running ? halt() : runScrape()));
+  // running — the bar
+  const bar = el('div', 'bar');
+  const barCount = el('span', 'count');
+  const stop = el('button', null, 'Stop');
+  stop.type = 'button';
+  stop.addEventListener('click', () => halt());
+  bar.append(
+    el('span', 'dot'),
+    el('span', null, 'Scraping your X bookmarks'),
+    barCount,
+    el('span', 'hint', 'Keep this tab in front — it scrolls on its own'),
+    stop
+  );
 
-  panel.append(button);
-  root.append(panel);
+  root.append(pill, bar);
   document.body.append(host);
 
-  ui = { host, panel, button, label, count };
+  ui = { host, pill, pillCount, bar, barCount };
 }
 
 function render() {
-  const theme = pageTheme();
-  for (const [name, value] of Object.entries(theme)) ui.panel.style.setProperty(`--${name}`, value);
+  for (const [name, value] of Object.entries(pageTheme())) {
+    ui.host.style.setProperty(`--${name}`, value);
+  }
 
-  ui.button.classList.toggle('is-running', state.running);
-  ui.label.textContent = state.running ? 'Stop scraping' : 'Scrape bookmarks';
-  ui.count.textContent = state.tweets.size ? state.tweets.size.toLocaleString() : '';
-  // The pill has room for two words; the long-form progress goes in the tooltip.
-  ui.button.title = state.status === 'idle' ? 'Scroll through every bookmark and save it' : state.status;
+  ui.pill.hidden = state.running;
+  ui.bar.hidden = !state.running;
+
+  const total = state.tweets.size;
+  ui.pillCount.textContent = total ? total.toLocaleString() : '';
+  ui.barCount.textContent = total ? `· ${total.toLocaleString()} collected` : '';
 }
 
 /*
