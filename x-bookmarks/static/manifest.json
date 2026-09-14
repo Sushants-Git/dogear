@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "X Bookmarks",
+  "name": "Dogear",
   "version": "2.0.0",
-  "description": "Scrape all of your X bookmarks, then search and read them in a page of your own.",
+  "description": "Read your X bookmarks without opening X.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -21,7 +27,13 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "X Bookmarks"
+    "default_title": "Dogear",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
   },
   "content_scripts": [
     {

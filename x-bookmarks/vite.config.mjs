@@ -13,8 +13,10 @@ function copyStatic() {
     name: 'copy-static',
     apply: 'build',
     closeBundle() {
-      for (const file of fs.readdirSync('static')) {
-        fs.copyFileSync(path.join('static', file), path.join('dist', file))
+      // Recursive because `static/` holds the icon folder as well as the scripts;
+      // copyFileSync would throw EISDIR on it.
+      for (const entry of fs.readdirSync('static')) {
+        fs.cpSync(path.join('static', entry), path.join('dist', entry), { recursive: true })
       }
     },
   }
